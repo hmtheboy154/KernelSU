@@ -854,6 +854,27 @@ static void *find_head_addr(void *security_ptr, int *index)
 		addr;                                                          \
 	})
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+#define KSU_LSM_HOOK_HACK_INIT(head_ptr, name, func)                           \
+	do {                                                                   \
+		static struct security_hook_list hook = {                      \
+			.hook = { .name = func }                               \
+		};                                                             \
+		hook.head = head_ptr;                                          \
+		hook.lsmid = { .name = "ksu", .id = 912 };                     \
+		struct hlist_head *new_head = copy_security_hlist(hook.head);  \
+		if (!new_head) {                                               \
+			pr_err("Failed to copy security list: %s\n", #name);   \
+			break;                                                 \
+		}                                                              \
+		hlist_add_tail_rcu(&hook.list, new_head);                      \
+		if (override_security_head(hook.head, new_head,                \
+					   sizeof(*new_head))) {               \
+			free_security_hook_list(new_head);                     \
+			pr_err("Failed to hack lsm for: %s\n", #name);         \
+		}                                                              \
+	} while (0)
+#else
 #define KSU_LSM_HOOK_HACK_INIT(head_ptr, name, func)                           \
 	do {                                                                   \
 		static struct security_hook_list hook = {                      \
@@ -873,6 +894,7 @@ static void *find_head_addr(void *security_ptr, int *index)
 			pr_err("Failed to hack lsm for: %s\n", #name);         \
 		}                                                              \
 	} while (0)
+#endif
 
 void __init ksu_lsm_hook_init(void)
 {
