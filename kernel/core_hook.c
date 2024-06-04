@@ -861,7 +861,7 @@ static void *find_head_addr(void *security_ptr, int *index)
 			.hook = { .name = func }                               \
 		};                                                             \
 		hook.head = head_ptr;                                          \
-		hook.lsmid = { .name = "ksu", .id = 912 };                     \
+		hook.lsmid = &ksu_lsmid;     			                       \
 		struct hlist_head *new_head = copy_security_hlist(hook.head);  \
 		if (!new_head) {                                               \
 			pr_err("Failed to copy security list: %s\n", #name);   \
