@@ -32,8 +32,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -78,6 +82,7 @@ import me.weishu.kernelsu.ui.viewmodel.getTemplateInfoById
  * @author weishu
  * @date 2023/5/16.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
 fun AppProfileScreen(
@@ -85,7 +90,8 @@ fun AppProfileScreen(
     appInfo: SuperUserViewModel.AppInfo,
 ) {
     val context = LocalContext.current
-    val snackbarHost = LocalSnackbarHost.current
+    val snackBarHost = LocalSnackbarHost.current
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
     val failToUpdateAppProfile = stringResource(R.string.failed_to_update_app_profile).format(appInfo.label)
     val failToUpdateSepolicy = stringResource(R.string.failed_to_update_sepolicy).format(appInfo.label)
@@ -100,19 +106,25 @@ fun AppProfileScreen(
     }
 
     Scaffold(
-        topBar = { TopBar { navigator.popBackStack() } },
+        topBar = {
+            TopBar(
+                onBack = { navigator.popBackStack() },
+                scrollBehavior = scrollBehavior
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackBarHost) },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
         AppProfileInner(
             modifier = Modifier
                 .padding(paddingValues)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState()),
             packageName = appInfo.packageName,
             appLabel = appInfo.label,
             appIcon = {
                 AsyncImage(
-                    model = ImageRequest.Builder(context).data(appInfo.packageInfo).crossfade(true)
-                        .build(),
+                    model = ImageRequest.Builder(context).data(appInfo.packageInfo).crossfade(true).build(),
                     contentDescription = appInfo.label,
                     modifier = Modifier
                         .padding(4.dp)
@@ -133,12 +145,12 @@ fun AppProfileScreen(
                 scope.launch {
                     if (it.allowSu && !it.rootUseDefault && it.rules.isNotEmpty()) {
                         if (!setSepolicy(profile.name, it.rules)) {
-                            snackbarHost.showSnackbar(failToUpdateSepolicy)
+                            snackBarHost.showSnackbar(failToUpdateSepolicy)
                             return@launch
                         }
                     }
                     if (!Natives.setAppProfile(it)) {
-                        snackbarHost.showSnackbar(failToUpdateAppProfile.format(appInfo.uid))
+                        snackBarHost.showSnackbar(failToUpdateAppProfile.format(appInfo.uid))
                     } else {
                         profile = it
                     }
@@ -178,7 +190,9 @@ private fun AppProfileInner(
         )
 
         Crossfade(targetState = isRootGranted, label = "") { current ->
-            Column {
+            Column(
+                modifier = Modifier.padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)
+            ) {
                 if (current) {
                     val initialMode = if (profile.rootUseDefault) {
                         Mode.Default
@@ -242,7 +256,10 @@ private enum class Mode(@StringRes private val res: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TopBar(onBack: () -> Unit) {
+private fun TopBar(
+    onBack: () -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior? = null
+) {
     TopAppBar(
         title = {
             Text(stringResource(R.string.profile))
@@ -252,7 +269,8 @@ private fun TopBar(onBack: () -> Unit) {
                 onClick = onBack
             ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
         },
-        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+        scrollBehavior = scrollBehavior
     )
 }
 
@@ -308,7 +326,8 @@ private fun AppMenuBox(packageName: String, content: @Composable () -> Unit) {
                     touchPoint = it
                     expanded = true
                 }
-            }) {
+            }
+    ) {
 
         content()
 

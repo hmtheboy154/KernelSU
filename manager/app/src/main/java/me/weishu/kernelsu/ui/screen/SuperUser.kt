@@ -9,14 +9,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -35,12 +33,13 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
 fun SuperUserScreen(navigator: DestinationsNavigator) {
     val viewModel = viewModel<SuperUserViewModel>()
     val scope = rememberCoroutineScope()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
     LaunchedEffect(Unit) {
         if (viewModel.appList.isEmpty()) {
@@ -92,33 +91,29 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                         }
                     }
                 },
+                scrollBehavior = scrollBehavior
             )
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
-        val refreshState = rememberPullRefreshState(
-            refreshing = viewModel.isRefreshing,
-            onRefresh = { scope.launch { viewModel.fetchAppList() } },
-        )
-        Box(
-            modifier = Modifier
-                .padding(innerPadding)
-                .pullRefresh(refreshState)
+        PullToRefreshBox(
+            modifier = Modifier.padding(innerPadding),
+            onRefresh = {
+                scope.launch { viewModel.fetchAppList() }
+            },
+            isRefreshing = viewModel.isRefreshing
         ) {
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+            ) {
                 items(viewModel.appList, key = { it.packageName + it.uid }) { app ->
                     AppItem(app) {
                         navigator.navigate(AppProfileScreenDestination(app))
                     }
-
                 }
             }
-
-            PullRefreshIndicator(
-                refreshing = viewModel.isRefreshing,
-                state = refreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
         }
     }
 }
