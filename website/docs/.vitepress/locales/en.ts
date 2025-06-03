@@ -11,7 +11,7 @@ export default defineConfig({
   themeConfig: {
     nav: nav(),
 
-    lastUpdatedText: 'last Updated',
+    lastUpdatedText: 'Last updated',
 
     sidebar: {
       '/guide/': sidebarGuide()
@@ -23,7 +23,7 @@ export default defineConfig({
 
     footer: {
         message: 'Released under the GPL3 License.',
-        copyright: 'Copyright © 2022-present KernelSU Developers'
+        copyright: 'Copyright © 2022-present KernelSU developers.'
     },
 
     editLink: {
@@ -47,10 +47,10 @@ function sidebarGuide() {
           { text: 'What is KernelSU?', link: '/guide/what-is-kernelsu' },
           { text: 'Difference with Magisk', link: '/guide/difference-with-magisk' },
           { text: 'Installation', link: '/guide/installation' },
-          { text: 'How to build?', link: '/guide/how-to-build' },
+          { text: 'How to build', link: '/guide/how-to-build' },
           { text: 'Intergrate for non-GKI devices', link: '/guide/how-to-integrate-for-non-gki'},
           { text: 'Unofficially supported devices', link: '/guide/unofficially-support-devices.md' },
-          { text: 'Module Guide', link: '/guide/module.md' },
+          { text: 'Module guide', link: '/guide/module.md' },
           { text: 'Module WebUI', link: '/guide/module-webui.md' },
           { text: 'App Profile', link: '/guide/app-profile.md' },
           { text: 'Rescue from bootloop', link: '/guide/rescue-from-bootloop.md' },

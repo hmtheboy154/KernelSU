@@ -14,7 +14,7 @@ use crate::{
 #[cfg(any(target_os = "linux", target_os = "android"))]
 use rustix::{
     process::getuid,
-    thread::{set_thread_res_gid, set_thread_res_uid, Gid, Uid},
+    thread::{Gid, Uid, set_thread_res_gid, set_thread_res_uid},
 };
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
@@ -26,7 +26,6 @@ pub fn grant_root(global_mnt: bool) -> Result<()> {
         command.pre_exec(move || {
             if global_mnt {
                 let _ = utils::switch_mnt_ns(1);
-                let _ = utils::unshare_mnt_ns();
             }
             Result::Ok(())
         })
@@ -105,10 +104,11 @@ pub fn root_shell() -> Result<()> {
         "preserve-environment",
         "preserve the entire environment",
     );
-    opts.optflag(
+    opts.optopt(
         "s",
         "shell",
         "use SHELL instead of the default /system/bin/sh",
+        "SHELL",
     );
     opts.optflag("v", "version", "display version number and exit");
     opts.optflag("V", "", "display version code and exit");
@@ -263,7 +263,6 @@ pub fn root_shell() -> Result<()> {
             #[cfg(any(target_os = "linux", target_os = "android"))]
             if mount_master {
                 let _ = utils::switch_mnt_ns(1);
-                let _ = utils::unshare_mnt_ns();
             }
 
             set_identity(uid, gid, &groups);
@@ -282,6 +281,6 @@ fn add_path_to_env(path: &str) -> Result<()> {
     let new_path = PathBuf::from(path.trim_end_matches('/'));
     paths.push(new_path);
     let new_path_env = env::join_paths(paths)?;
-    env::set_var("PATH", new_path_env);
+    unsafe { env::set_var("PATH", new_path_env) };
     Ok(())
 }

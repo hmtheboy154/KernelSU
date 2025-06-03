@@ -32,15 +32,23 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Wysiwyg
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -49,7 +57,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTopAppBarState
@@ -60,7 +68,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,7 +94,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.ConfirmResult
+import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.util.DownloadListener
@@ -97,9 +106,9 @@ import me.weishu.kernelsu.ui.util.hasMagisk
 import me.weishu.kernelsu.ui.util.reboot
 import me.weishu.kernelsu.ui.util.toggleModule
 import me.weishu.kernelsu.ui.util.uninstallModule
+import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import me.weishu.kernelsu.ui.webui.WebUIActivity
-import okhttp3.OkHttpClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
@@ -108,9 +117,13 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
     val viewModel = viewModel<ModuleViewModel>()
     val context = LocalContext.current
     val snackBarHost = LocalSnackbarHost.current
+    val scope = rememberCoroutineScope()
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     LaunchedEffect(Unit) {
         if (viewModel.moduleList.isEmpty() || viewModel.isNeedRefresh) {
+            viewModel.sortEnabledFirst = prefs.getBoolean("module_sort_enabled_first", false)
+            viewModel.sortActionFirst = prefs.getBoolean("module_sort_action_first", false)
             viewModel.fetchModuleList()
         }
     }
@@ -122,17 +135,80 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
+    val webUILauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { viewModel.fetchModuleList() }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
+            SearchAppBar(
                 title = { Text(stringResource(R.string.module)) },
-                windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                searchText = viewModel.search,
+                onSearchTextChange = { viewModel.search = it },
+                onClearClick = { viewModel.search = "" },
+                dropdownContent = {
+                    var showDropdown by remember { mutableStateOf(false) }
+
+                    IconButton(
+                        onClick = { showDropdown = true },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = stringResource(id = R.string.settings)
+                        )
+
+                        DropdownMenu(expanded = showDropdown, onDismissRequest = {
+                            showDropdown = false
+                        }) {
+                            DropdownMenuItem(text = {
+                                Text(stringResource(R.string.module_sort_action_first))
+                            }, trailingIcon = {
+                                Checkbox(viewModel.sortActionFirst, null)
+                            }, onClick = {
+                                viewModel.sortActionFirst =
+                                    !viewModel.sortActionFirst
+                                prefs.edit()
+                                    .putBoolean(
+                                        "module_sort_action_first",
+                                        viewModel.sortActionFirst
+                                    )
+                                    .apply()
+                                scope.launch {
+                                    viewModel.fetchModuleList()
+                                }
+                            })
+                            DropdownMenuItem(text = {
+                                Text(stringResource(R.string.module_sort_enabled_first))
+                            }, trailingIcon = {
+                                Checkbox(viewModel.sortEnabledFirst, null)
+                            }, onClick = {
+                                viewModel.sortEnabledFirst =
+                                    !viewModel.sortEnabledFirst
+                                prefs.edit()
+                                    .putBoolean(
+                                        "module_sort_enabled_first",
+                                        viewModel.sortEnabledFirst
+                                    )
+                                    .apply()
+                                scope.launch {
+                                    viewModel.fetchModuleList()
+                                }
+                            })
+                        }
+                    }
+                },
+                scrollBehavior = scrollBehavior,
             )
         },
         floatingActionButton = {
             if (!hideInstallButton) {
                 val moduleInstall = stringResource(id = R.string.module_install)
+                val confirmTitle = stringResource(R.string.module)
+                var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+                val confirmDialog = rememberConfirmDialog(onConfirm = {
+                    navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(zipUris)))
+                    viewModel.markNeedRefresh()
+                })
                 val selectZipLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) {
@@ -140,20 +216,38 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                         return@rememberLauncherForActivityResult
                     }
                     val data = it.data ?: return@rememberLauncherForActivityResult
-                    val uri = data.data ?: return@rememberLauncherForActivityResult
+                    val clipData = data.clipData
 
-                    navigator.navigate(FlashScreenDestination(FlashIt.FlashModule(uri)))
+                    val uris = mutableListOf<Uri>()
+                    if (clipData != null) {
+                        for (i in 0 until clipData.itemCount) {
+                            clipData.getItemAt(i)?.uri?.let { uris.add(it) }
+                        }
+                    } else {
+                        data.data?.let { uris.add(it) }
+                    }
 
-                    viewModel.markNeedRefresh()
-
-                    Log.i("ModuleScreen", "select zip result: ${it.data}")
+                    if (uris.size == 1) {
+                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(uris.first()))))
+                    } else if (uris.size > 1)  {
+                        // multiple files selected
+                        val moduleNames = uris.mapIndexed { index, uri -> "\n${index + 1}. ${uri.getFileName(context)}" }.joinToString("")
+                        val confirmContent = context.getString(R.string.module_install_prompt_with_name, moduleNames)
+                        zipUris = uris
+                        confirmDialog.showConfirm(
+                            title = confirmTitle,
+                            content = confirmContent,
+                            markdown = true
+                        )
+                    }
                 }
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                        // select the zip file to install
+                        // Select the zip files to install
                         val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                             type = "application/zip"
+                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                         }
                         selectZipLauncher.launch(intent)
                     },
@@ -165,6 +259,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         snackbarHost = { SnackbarHost(hostState = snackBarHost) }
     ) { innerPadding ->
+
         when {
             hasMagisk -> {
                 Box(
@@ -187,11 +282,11 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                     boxModifier = Modifier.padding(innerPadding),
                     onInstallModule = {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModule(it)))
+                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it))))
                     },
                     onClickModule = { id, name, hasWebUi ->
                         if (hasWebUi) {
-                            context.startActivity(
+                            webUILauncher.launch(
                                 Intent(context, WebUIActivity::class.java)
                                     .setData(Uri.parse("kernelsu://webui/$id"))
                                     .putExtra("id", id)
@@ -247,7 +342,7 @@ private fun ModuleList(
         val changelogResult = loadingDialog.withLoading {
             withContext(Dispatchers.IO) {
                 runCatching {
-                    OkHttpClient().newCall(
+                    ksuApp.okhttpClient.newCall(
                         okhttp3.Request.Builder().url(changelogUrl).build()
                     ).execute().body!!.string()
                 }
@@ -392,7 +487,6 @@ private fun ModuleList(
 
                 else -> {
                     items(viewModel.moduleList) { module ->
-                        var isChecked by rememberSaveable(module) { mutableStateOf(module.enabled) }
                         val scope = rememberCoroutineScope()
                         val updatedModule by produceState(initialValue = Triple("", "", "")) {
                             scope.launch(Dispatchers.IO) {
@@ -403,7 +497,6 @@ private fun ModuleList(
                         ModuleItem(
                             navigator = navigator,
                             module = module,
-                            isChecked = isChecked,
                             updateUrl = updatedModule.first,
                             onUninstall = {
                                 scope.launch { onModuleUninstall(module) }
@@ -412,11 +505,10 @@ private fun ModuleList(
                                 scope.launch {
                                     val success = loadingDialog.withLoading {
                                         withContext(Dispatchers.IO) {
-                                            toggleModule(module.id, !isChecked)
+                                            toggleModule(module.id, !module.enabled)
                                         }
                                     }
                                     if (success) {
-                                        isChecked = it
                                         viewModel.fetchModuleList()
 
                                         val result = snackBarHost.showSnackbar(
@@ -428,7 +520,7 @@ private fun ModuleList(
                                             reboot()
                                         }
                                     } else {
-                                        val message = if (isChecked) failedDisable else failedEnable
+                                        val message = if (module.enabled) failedDisable else failedEnable
                                         snackBarHost.showSnackbar(message.format(module.name))
                                     }
                                 }
@@ -464,7 +556,6 @@ private fun ModuleList(
 fun ModuleItem(
     navigator: DestinationsNavigator,
     module: ModuleViewModel.ModuleInfo,
-    isChecked: Boolean,
     updateUrl: String,
     onUninstall: (ModuleViewModel.ModuleInfo) -> Unit,
     onCheckChanged: (Boolean) -> Unit,
@@ -477,27 +568,22 @@ fun ModuleItem(
         val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
         val interactionSource = remember { MutableInteractionSource() }
         val indication = LocalIndication.current
+        val viewModel = viewModel<ModuleViewModel>()
 
         Column(
             modifier = Modifier
                 .run {
                     if (module.hasWebUi) {
                         toggleable(
-                            value = isChecked,
+                            value = module.enabled,
+                            enabled = !module.remove && module.enabled,
                             interactionSource = interactionSource,
                             role = Role.Button,
                             indication = indication,
                             onValueChange = { onClick(module) }
                         )
                     } else {
-                        toggleable(
-                            value = isChecked,
-                            interactionSource = interactionSource,
-                            role = Role.Switch,
-                            indication = indication,
-                            onValueChange = onCheckChanged,
-                            enabled = !module.update
-                        )
+                        this
                     }
                 }
                 .padding(22.dp, 18.dp, 22.dp, 12.dp)
@@ -546,7 +632,7 @@ fun ModuleItem(
                 ) {
                     Switch(
                         enabled = !module.update,
-                        checked = isChecked,
+                        checked = module.enabled,
                         onCheckedChange = onCheckChanged,
                         interactionSource = if (!module.hasWebUi) interactionSource else null
                     )
@@ -580,21 +666,26 @@ fun ModuleItem(
                 if (module.hasActionScript) {
                     FilledTonalButton(
                         modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                        onClick = { navigator.navigate(ExecuteModuleActionScreenDestination(module.id)) },
+                        enabled = !module.remove && module.enabled,
+                        onClick = {
+                            navigator.navigate(ExecuteModuleActionScreenDestination(module.id))
+                            viewModel.markNeedRefresh()
+                        },
                         contentPadding = ButtonDefaults.TextButtonContentPadding
                     ) {
                         Icon(
-                            modifier = Modifier
-                                .padding(end = 7.dp)
-                                .size(20.dp),
+                            modifier = Modifier.size(20.dp),
                             imageVector = Icons.Outlined.PlayArrow,
                             contentDescription = null
                         )
-                        Text(
-                            text = stringResource(R.string.action),
-                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize
-                        )
+                        if (!module.hasWebUi && updateUrl.isEmpty()) {
+                            Text(
+                                modifier = Modifier.padding(start = 7.dp),
+                                text = stringResource(R.string.action),
+                                fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                                fontSize = MaterialTheme.typography.labelMedium.fontSize
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(0.1f, true))
@@ -603,24 +694,24 @@ fun ModuleItem(
                 if (module.hasWebUi) {
                     FilledTonalButton(
                         modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                        enabled = !module.remove && module.enabled,
                         onClick = { onClick(module) },
                         interactionSource = interactionSource,
                         contentPadding = ButtonDefaults.TextButtonContentPadding
                     ) {
-                        if (!module.hasActionScript) {
-                            Icon(
-                                modifier = Modifier
-                                    .padding(end = 7.dp)
-                                    .size(20.dp),
-                                imageVector = Icons.AutoMirrored.Outlined.Wysiwyg,
-                                contentDescription = null
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            imageVector = Icons.AutoMirrored.Outlined.Wysiwyg,
+                            contentDescription = null
+                        )
+                        if (!module.hasActionScript && updateUrl.isEmpty()) {
+                            Text(
+                                modifier = Modifier.padding(start = 7.dp),
+                                fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                text = stringResource(R.string.open)
                             )
                         }
-                        Text(
-                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                            text = stringResource(R.string.open)
-                        )
                     }
                 }
 
@@ -629,15 +720,24 @@ fun ModuleItem(
                 if (updateUrl.isNotEmpty()) {
                     Button(
                         modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                        enabled = !module.remove,
                         onClick = { onUpdate(module) },
                         shape = ButtonDefaults.textShape,
                         contentPadding = ButtonDefaults.TextButtonContentPadding
                     ) {
-                        Text(
-                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                            text = stringResource(R.string.module_update)
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            imageVector = Icons.Outlined.Download,
+                            contentDescription = null
                         )
+                        if (!module.hasActionScript || !module.hasWebUi) {
+                            Text(
+                                modifier = Modifier.padding(start = 7.dp),
+                                fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                text = stringResource(R.string.module_update)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(0.1f, true))
@@ -649,11 +749,19 @@ fun ModuleItem(
                     onClick = { onUninstall(module) },
                     contentPadding = ButtonDefaults.TextButtonContentPadding
                 ) {
-                    Text(
-                        fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                        text = stringResource(R.string.uninstall)
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = null
                     )
+                    if (!module.hasActionScript && !module.hasWebUi && updateUrl.isEmpty()) {
+                        Text(
+                            modifier = Modifier.padding(start = 7.dp),
+                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                            text = stringResource(R.string.uninstall)
+                        )
+                    }
                 }
             }
         }
@@ -677,5 +785,5 @@ fun ModuleItemPreview() {
         hasWebUi = false,
         hasActionScript = false
     )
-    ModuleItem(EmptyDestinationsNavigator, module, true, "", {}, {}, {}, {})
+    ModuleItem(EmptyDestinationsNavigator, module, "", {}, {}, {}, {})
 }

@@ -23,6 +23,10 @@
     <string name="module_failed_to_disable">Failed to disable module: %s</string>
     <string name="module_empty">No module installed</string>
     <string name="module">Module</string>
+    <string name="module_install_prompt_with_name">The following modules will be installed: %1$s</string>
+    <string name="module_sort_action_first">Sort (Action first)</string>
+    <string name="module_sort_enabled_first">Sort (Enabled first)</string>
+    <string name="confirm">Confirm</string>
     <string name="uninstall">Uninstall</string>
     <string name="module_install">Install</string>
     <string name="install">Install</string>
@@ -39,7 +43,7 @@
     <string name="module_uninstall_failed">Failed to uninstall: %s</string>
     <string name="module_version">Version</string>
     <string name="module_author">Author</string>
-    <string name="module_overlay_fs_not_available">Modules are unavailable as OverlayFS is disabled by the kernel.</string>
+    <string name="module_overlay_fs_not_available">Modules are unavailable as OverlayFS is disabled by the kernel!</string>
     <string name="refresh">Refresh</string>
     <string name="show_system_apps">Show system apps</string>
     <string name="hide_system_apps">Hide system apps</string>
@@ -80,14 +84,15 @@
     <string name="launch_app">Launch</string>
     <string name="force_stop_app">Force stop</string>
     <string name="restart_app">Restart</string>
-    <string name="failed_to_update_sepolicy">Failed to update SELinux rules for: %s</string>
+    <string name="failed_to_update_sepolicy">Failed to update SELinux rules for %s</string>
+    <string name="su_not_allowed">Granting superuser to %s is not allowed</string>
     <string name="module_changelog">Changelog</string>
     <string name="settings_profile_template">App Profile Template</string>
     <string name="settings_profile_template_summary">Manage local and online template of App Profile</string>
     <string name="app_profile_template_create">Create template</string>
     <string name="app_profile_template_edit">Edit template</string>
     <string name="app_profile_template_id">ID</string>
-    <string name="app_profile_template_id_invalid">Invalid template id</string>
+    <string name="app_profile_template_id_invalid">Invalid template ID</string>
     <string name="app_profile_template_name">Name</string>
     <string name="app_profile_template_description">Description</string>
     <string name="app_profile_template_save">Save</string>
@@ -110,7 +115,7 @@
     <string name="action">Action</string>
     <string name="open">Open</string>
     <string name="enable_web_debugging">Enable WebView debugging</string>
-    <string name="enable_web_debugging_summary">Can be used to debug WebUI, please enable only when needed.</string>
+    <string name="enable_web_debugging_summary">Can be used to debug WebUI. Please enable only when needed.</string>
     <string name="direct_install">Direct install (Recommended)</string>
     <string name="select_file">Select a file</string>
     <string name="install_inactive_slot">Install to inactive slot (After OTA)</string>
@@ -133,4 +138,6 @@
     <string name="selected_lkm">Selected LKM: %s</string>
     <string name="save_log">Save logs</string>
     <string name="log_saved">Logs saved</string>
+    <string name="settings_disable_su">Disable su compatibility</string>
+    <string name="settings_disable_su_summary">Temporarily disable the ability of any app to gain root privileges via the ⁠su command (existing root processes won\'t be affected).</string>
 </resources>

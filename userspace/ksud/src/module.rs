@@ -6,7 +6,7 @@ use crate::{
     sepolicy, utils,
 };
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 use const_format::concatcp;
 use is_executable::is_executable;
 use java_properties::PropertiesIter;
@@ -16,7 +16,7 @@ use std::fs::OpenOptions;
 use std::{
     collections::HashMap,
     env::var as env_var,
-    fs::{remove_dir_all, remove_file, set_permissions, File, Permissions},
+    fs::{File, Permissions, remove_dir_all, remove_file, set_permissions},
     io::Cursor,
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -279,10 +279,22 @@ pub fn prune_modules() -> Result<()> {
         Ok(())
     })?;
 
+    // collect remaining modules, if none, remove img
+    let remaining_modules: Vec<_> = std::fs::read_dir(defs::MODULE_DIR)?
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.path().join("module.prop").exists())
+        .collect();
+
+    if remaining_modules.is_empty() {
+        info!("no remaining modules, deleting image files.");
+        std::fs::remove_file(defs::MODULE_IMG).ok();
+        std::fs::remove_file(defs::MODULE_UPDATE_IMG).ok();
+    }
+
     Ok(())
 }
 
-fn create_module_image(image: &str, image_size: u64, journal_size: u64) -> Result<()> {
+fn create_module_image(image: &str, image_size: u64) -> Result<()> {
     File::create(image)
         .context("Failed to create ext4 image file")?
         .set_len(image_size)
@@ -290,8 +302,8 @@ fn create_module_image(image: &str, image_size: u64, journal_size: u64) -> Resul
 
     // format the img to ext4 filesystem
     let result = Command::new("mkfs.ext4")
-        .arg("-J")
-        .arg(format!("size={journal_size}"))
+        .arg("-O")
+        .arg("^has_journal")
         .arg(image)
         .stdout(Stdio::piped())
         .output()?;
@@ -303,6 +315,7 @@ fn create_module_image(image: &str, image_size: u64, journal_size: u64) -> Resul
     check_image(image)?;
     Ok(())
 }
+
 fn _install_module(zip: &str) -> Result<()> {
     ensure_boot_completed()?;
 
@@ -362,13 +375,13 @@ fn _install_module(zip: &str) -> Result<()> {
         humansize::format_size(zip_uncompressed_size, humansize::DECIMAL)
     );
 
-    let sparse_image_size = 1 << 40; // 1T
-    let journal_size = 8; // 8M
+    let data_vfs = fs4::statvfs("/data").with_context(|| "Failed to stat /data".to_string())?;
+    let sparse_image_size = data_vfs.total_space();
     if !modules_img_exist && !modules_update_img_exist {
         // if no modules and modules_update, it is brand new installation, we should create a new img
         // create a tmp module img and mount it to modules_update
         info!("Creating brand new module image");
-        create_module_image(tmp_module_img, sparse_image_size, journal_size)?;
+        create_module_image(tmp_module_img, sparse_image_size)?;
     } else if modules_update_img_exist {
         // modules_update.img exists, we should use it as tmp img
         info!("Using existing modules_update.img as tmp image");
@@ -390,7 +403,7 @@ fn _install_module(zip: &str) -> Result<()> {
         // legacy image, it's block size is 1024 with unlimited journal size
         if blksize == 1024 {
             println!("- Legacy image, migrating to new format, please be patient...");
-            create_module_image(tmp_module_img, sparse_image_size, journal_size)?;
+            create_module_image(tmp_module_img, sparse_image_size)?;
             let _dontdrop =
                 mount::AutoMountExt4::try_new(tmp_module_img, module_update_tmp_dir, true)
                     .with_context(|| format!("Failed to mount {tmp_module_img}"))?;
@@ -659,12 +672,15 @@ fn _list_modules(path: &str) -> Vec<HashMap<String, String>> {
             });
 
         if !module_prop_map.contains_key("id") || module_prop_map["id"].is_empty() {
-            if let Some(id) = entry.file_name().to_str() {
-                info!("Use dir name as module id: {}", id);
-                module_prop_map.insert("id".to_owned(), id.to_owned());
-            } else {
-                info!("Failed to get module id: {:?}", module_prop);
-                continue;
+            match entry.file_name().to_str() {
+                Some(id) => {
+                    info!("Use dir name as module id: {}", id);
+                    module_prop_map.insert("id".to_owned(), id.to_owned());
+                }
+                _ => {
+                    info!("Failed to get module id: {:?}", module_prop);
+                    continue;
+                }
             }
         }
 

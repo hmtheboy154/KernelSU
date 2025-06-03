@@ -30,6 +30,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.dropUnlessResumed
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -49,6 +50,7 @@ import java.util.Locale
 @Destination<RootGraph>
 fun ExecuteModuleActionScreen(navigator: DestinationsNavigator, moduleId: String) {
     var text by rememberSaveable { mutableStateOf("") }
+    var tempText : String
     val logContent = rememberSaveable { StringBuilder() }
     val snackBarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
@@ -63,7 +65,12 @@ fun ExecuteModuleActionScreen(navigator: DestinationsNavigator, moduleId: String
             runModuleAction(
                 moduleId = moduleId,
                 onStdout = {
-                    text += "$it\n"
+                    tempText = "$it\n"
+                    if (tempText.startsWith("[H[J")) { // clear command
+                        text = tempText.substring(6)
+                    } else {
+                        text += tempText
+                    }
                     logContent.append(it).append("\n")
                 },
                 onStderr = {
@@ -79,7 +86,7 @@ fun ExecuteModuleActionScreen(navigator: DestinationsNavigator, moduleId: String
     Scaffold(
         topBar = {
             TopBar(
-                onBack = {
+                onBack = dropUnlessResumed {
                     navigator.popBackStack()
                 },
                 onSave = {

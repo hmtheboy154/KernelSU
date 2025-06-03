@@ -2,8 +2,8 @@
     {
         "maintainer": "diphons",
         "maintainer_link": "https://github.com/diphons",
-        "kernel_name": "D8G_Kernel_oxygen",
-        "kernel_link": "https://github.com/diphons/D8G_Kernel_oxygen/tree/13",
+        "kernel_name": "kernel_xiaomi_sm8250",
+        "kernel_link": "https://github.com/diphons/kernel_xiaomi_sm8250/tree/main",
         "devices": "Poco F3: alioth | Poco F4: munch | MI10T/PRO: Apollo"
     },
     {
@@ -16,16 +16,16 @@
     {
         "maintainer": "diphons",
         "maintainer_link": "https://github.com/diphons",
-        "kernel_name": "D8G_Kernel_SDM845",
-        "kernel_link": "https://github.com/diphons/D8G_Kernel/tree/main",
-        "devices": "Poco F1 | MI8 | MiMix2S"
+        "kernel_name": "kernel_xiaomi_sdm845",
+        "kernel_link": "https://github.com/diphons/kernel_xiaomi_sdm845/tree/main",
+        "devices": "Poco F1"
     },
     {
         "maintainer": "diphons",
         "maintainer_link": "https://github.com/diphons",
-        "kernel_name": "D8G_Kernel_SM8350",
-        "kernel_link": "https://github.com/diphons/D8G_Kernel_SM8350/tree/13",
-        "devices": "Vili"
+        "kernel_name": "kernel_xiaomi_sm8350",
+        "kernel_link": "https://github.com/diphons/kernel_xiaomi_sm8350/tree/15",
+        "devices": "MI11T Pro: vili"
     },
     {
         "maintainer": "diphons",
@@ -33,6 +33,13 @@
         "kernel_name": "D8G_Kernel_Marble",
         "kernel_link": "https://github.com/diphons/D8G_Kernel_Marble/tree/op",
         "devices": "Poco F5 | Redmi Note 12 Turbo | Marble"
+    },
+    {
+        "maintainer": "diphons",
+        "maintainer_link": "https://github.com/diphons",
+        "kernel_name": "kernel_xiaomi_sm8635",
+        "kernel_link": "https://github.com/diphons/kernel_xiaomi_sm8635/tree/main",
+        "devices": "Poco F6: peridot"
     },
     {
         "maintainer": "th1nhhdk",
@@ -560,13 +567,6 @@
         "devices": "Google Pixel 3a & 3a XL (sargo & bonito)"
     },
     {
-        "maintainer": "rsuntk",
-        "maintainer_link": "https://github.com/rsuntk",
-        "kernel_name": "android_kernel_samsung_a12s",
-        "kernel_link": "https://github.com/rsuntk/android_kernel_samsung_a12s",
-        "devices": "Samsung Galaxy A12s (Nacho) | Exynos 850"
-    },
-    {
         "maintainer": "Lonelystar9x",
         "maintainer_link": "https://github.com/lonelystar9x",
         "kernel_name": "Kernel_xiaomi_sdm845",
@@ -602,39 +602,11 @@
         "devices": "Oneplus 7(guacamoleb)/7 Pro(guacamole)/7T(hotdog)/7TPro (hotdogb)"
     },
     {
-        "maintainer": "backslashxx",
-        "maintainer_link": "https://github.com/backslashxx/",
-        "kernel_name": "msm8953-los21",
-        "kernel_link": "https://github.com/backslashxx/msm8953-los21",
-        "devices": "Mi A2 Lite (daisy) / Redmi 6 Pro (sakura) + Redmi S2/Y2 (ysl)"
-    },
-    {
-        "maintainer": "backslashxx",
-        "maintainer_link": "https://github.com/backslashxx/",
-        "kernel_name": "mojito_krenol",
-        "kernel_link": "https://github.com/backslashxx/mojito_krenol",
-        "devices": "Redmi Note 10 (sunny/mojito)"
-    },
-    {
-        "maintainer": "backslashxx",
-        "maintainer_link": "https://github.com/backslashxx/",
-        "kernel_name": "fog_kramel",
-        "kernel_link": "https://github.com/backslashxx/fog_kramel",
-        "devices": "Redmi 10C (fog/rain/wind)"
-    },
-    {
         "maintainer": "Fede2782",
         "maintainer_link": "https://github.com/Fede2782",
         "kernel_name": "android_kernel_samsung_gta4xl",
         "kernel_link": "https://github.com/Fede2782/android_kernel_samsung_gta4xl",
         "devices": "Galaxy Tab S6 Lite LTE (gta4xl)"
-    },
-    {
-        "maintainer": "rsuntk",
-        "maintainer_link": "https://github.com/rsuntk",
-        "kernel_name": "android_kernel_samsung_a03",
-        "kernel_link": "https://github.com/rsuntk/android_kernel_samsung_a03",
-        "devices": "Samsung Galaxy A03 | Unisoc T606 | Scorpio Kernel"
     },
     {
         "maintainer": "ArchVisions",
@@ -726,5 +698,40 @@
         "kernel_name": "android_kernel_realme_RMX3511",
         "kernel_link": "https://github.com/rifsxd/android_kernel_realme_RMX3511",
         "devices": "Realme C35 (RMX3511)"
+    },
+    {
+        "maintainer": "qlAD",
+        "maintainer_link": "https://github.com/qlAD",
+        "kernel_name": "kernel_oneplus_sdm845",
+        "kernel_link": "https://github.com/qlAD/kernel_oneplus_sdm845",
+        "devices": "OnePlus 6 (enchilada) with PixelExperience "
+    },
+    {
+      "maintainer": "rsuntkOrgs",
+        "maintainer_link": "https://github.com/rsuntkOrgs",
+        "kernel_name": "kernel_samsung_wingtech",
+        "kernel_link": "https://github.com/rsuntkOrgs/kernel_samsung_wingtech",
+        "devices": "Samsung Galaxy A05 (a05m) and A04 (a04)"
+     },
+    {
+        "maintainer": "itejo443",
+        "maintainer_link": "https://github.com/itejo443",
+        "kernel_name": "android_kernel_samsung_sm7225",
+        "kernel_link": "https://github.com/itejo443/android_kernel_samsung_sm7225",
+        "devices": "Samsung Galaxy F23 and M23 (m23xq)"
+    },
+    {
+        "maintainer": "JuiIm",
+        "maintainer_link": "https://github.com/JuiIm",
+        "kernel_name": "M30s-custom-kernel",
+        "kernel_link": "https://github.com/JuiIm/M30s-custom-kernel-M307f---KernelSU-support/",
+        "devices": "Samsung Galaxy M30s (M307F)"
+    },
+    {
+        "maintainer": "poqdavid",
+        "maintainer_link": "https://github.com/poqdavid",
+        "kernel_name": "android_kernel_samsung_sma155f",
+        "kernel_link": "https://github.com/poqdavid/android_kernel_samsung_sma155f",
+        "devices": "Samsung Galaxy A15 4G (sma155f) | MediaTek Helio G99"
     }
 ]
